@@ -537,3 +537,5 @@ var pubnub_flex_history = function (args1, completed) {
         completed(result);
     }
 };
+
+module.exports = pubnub_flex_history;
