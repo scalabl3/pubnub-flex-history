@@ -1,3 +1,5 @@
+Deprecated! Worked with 3.x JS SDK's, but still useful to see the structure. May be eventually updated for JS SDK's 4.x.
+
 # pubnub-flex-history
 A Javascript History wrapper for flexible history calls, automatically handling any paging.
 
