@@ -20,7 +20,7 @@
  * SDK, but feel free to email me if you find any issues: jasdeep@pubnub.com.
  *
  */
-var pubnub_flex_history = function (args1, completed) {
+var pubnub_flex_history = function (args1, completed, errorFn) {
 
     var self = this;
 
@@ -48,7 +48,7 @@ var pubnub_flex_history = function (args1, completed) {
         result.channel = null;
         result.error = true;
         result.errorMessage = "channel not specified";
-        completed(result);
+        errorFn(result);
         return;
     }
 
@@ -72,13 +72,11 @@ var pubnub_flex_history = function (args1, completed) {
     // timetoken less than comparison
     function tt_lt(a, b) {
 
-        //console.log("lt", a,b);
-
-        if (a === 0) {
+        if (!a) {
             return true;
         }
 
-        if (b === 0) {
+        if (!b) {
             return false;
         }
 
@@ -97,8 +95,6 @@ var pubnub_flex_history = function (args1, completed) {
 
     // timetoken greater than comparison
     function tt_gt(a,b) {
-
-        //console.log("gt", a,b);
 
         if (b === 0) {
             return true;
@@ -124,9 +120,6 @@ var pubnub_flex_history = function (args1, completed) {
     // Get Page from history API
     function getPage(args2, callback) {
         args2.callback = function (m) {
-            //console.log("getPageResult", m);
-            //console.log(parseInt(m[2]) - parseInt(m[1]));
-            //console.log("");
             callback({
                 start: m[1],
                 end: m[2],
@@ -138,8 +131,7 @@ var pubnub_flex_history = function (args1, completed) {
         args2.error = function(e) {
             callback({
                 error: true,
-                errorObject: e,
-                errorMessage: e.toString()
+                errorObject: e
             });
         };
 
@@ -164,10 +156,14 @@ var pubnub_flex_history = function (args1, completed) {
         if (parseInt(args1.last) <= 100) {
             params.count = args1.last;
             getPage(params, function (r) {
+              if ('error' in r) {
+                errorFn(r);
+              } else {
                 for (var attrname in r) {
                     result[attrname] = r[attrname];
                 }
                 completed(result);
+              }
             });
         }
 
@@ -178,29 +174,34 @@ var pubnub_flex_history = function (args1, completed) {
                 params.count = (args1.last - result.count >= 100 ? 100 : args1.last - result.count );
 
                 getPage(params, function (r) {
+                  if ('error' in r) {
+                    errorFn(r);
+                  } else {
 
                     result.count += r.count;
                     Array.prototype.push.apply(result.messages, r.messages);
 
                     // each page will be an earlier start timetoken
                     if (result.start === 0 || tt_lt(r.start, result.start)) {
-                        result.start = r.start;
+                      result.start = r.start;
                     }
 
                     // always is > the first time, but subsequent pages will be less
                     if (tt_gt(r.end, result.end)) {
-                        result.end = r.end;
+                      result.end = r.end;
                     }
 
                     // continue paging if message count < total desired
                     if (result.count < args1.last) {
-                        params.end = r.start;  // since going in reverse order
-                        lastNextPage();
+                      params.end = r.start;  // since going in reverse order
+                      lastNextPage();
                     }
                     else {
 
-                        completed(result);
+                      completed(result);
                     }
+                  };
+
                 });
             }
 
@@ -221,10 +222,15 @@ var pubnub_flex_history = function (args1, completed) {
         if (parseInt(args1.msgcount) <= 100) {
             params.count = args1.msgcount;
             getPage(params, function (r) {
+              if('error' in r) {
+                errorFn(r);
+              } else {
                 for (var attrname in r) {
-                    result[attrname] = r[attrname];
+                  result[attrname] = r[attrname];
                 }
                 completed(result);
+
+              }
             });
         }
 
@@ -235,30 +241,35 @@ var pubnub_flex_history = function (args1, completed) {
 
             function beforeNextPage() {
 
-                getPage(params, function (r) {
+              getPage(params, function (r) {
+                if('error' in r) {
+                  errorFn(r);
+                } else {
 
-                    result.count += r.count;
-                    Array.prototype.push.apply(result.messages, r.messages);
+                  result.count += r.count;
+                  Array.prototype.push.apply(result.messages, r.messages);
 
-                    // each page will be an earlier start timetoken
-                    if (result.start === 0 || tt_lt(r.start, result.start)) {
-                        result.start = r.start;
-                    }
+                  // each page will be an earlier start timetoken
+                  if (result.start === 0 || tt_lt(r.start, result.start)) {
+                    result.start = r.start;
+                  }
 
-                    // always is > the first time, but subsequent pages will be less
-                    if (tt_gt(r.end, result.end)) {
-                        result.end = r.end;
-                    }
+                  // always is > the first time, but subsequent pages will be less
+                  if (tt_gt(r.end, result.end)) {
+                    result.end = r.end;
+                  }
 
-                    // continue paging if message count < total desired (args1.msgcount)
-                    if (result.count < args1.msgcount) {
-                        params.start = r.end;
-                        beforeNextPage();
-                    }
-                    else {
-                        completed(result);
-                    }
-                });
+                  // continue paging if message count < total desired (args1.msgcount)
+                  if (result.count < args1.msgcount) {
+                    params.start = r.end;
+                    beforeNextPage();
+                  }
+                  else {
+                    completed(result);
+                  }
+
+                }
+              });
             }
 
             beforeNextPage();
@@ -275,30 +286,34 @@ var pubnub_flex_history = function (args1, completed) {
 
         function sinceNextPage() {
 
-            getPage(params, function (r) {
+          getPage(params, function (r) {
+            if('error' in r) {
+              errorFn(r);
+            } else {
 
-                result.count += r.count;
-                Array.prototype.push.apply(result.messages, r.messages);
+              result.count += r.count;
+              Array.prototype.push.apply(result.messages, r.messages);
 
-                // each page will be an earlier start timetoken
-                if (result.start === 0 || tt_lt(r.start, result.start)) {
-                    result.start = r.start;
-                }
+              // each page will be an earlier start timetoken
+              if (result.start === 0 || tt_lt(r.start, result.start)) {
+                result.start = r.start;
+              }
 
-                // always is > the first time, but subsequent pages will be less
-                if (tt_gt(r.end, result.end)) {
-                    result.end = r.end;
-                }
+              // always is > the first time, but subsequent pages will be less
+              if (tt_gt(r.end, result.end)) {
+                result.end = r.end;
+              }
 
-                // continue paging if returns whole page
-                if (r.count === 100) {
-                    params.start = r.end;
-                    sinceNextPage();
-                }
-                else {
-                    completed(result);
-                }
-            });
+              // continue paging if returns whole page
+              if (r.count === 100) {
+                params.start = r.end;
+                sinceNextPage();
+              }
+              else {
+                completed(result);
+              }
+            }
+          });
         }
 
         sinceNextPage();
@@ -314,30 +329,35 @@ var pubnub_flex_history = function (args1, completed) {
 
         function uptoNextPage() {
 
-            getPage(params, function (r) {
+          getPage(params, function (r) {
+            if('error' in r) {
+              errorFn(r);
+            } else {
 
-                result.count += r.count;
-                Array.prototype.push.apply(result.messages, r.messages);
+              result.count += r.count;
+              Array.prototype.push.apply(result.messages, r.messages);
 
-                // each page will be an earlier start timetoken
-                if (result.start === 0 || tt_lt(r.start, result.start)) {
-                    result.start = r.start;
-                }
+              // each page will be an earlier start timetoken
+              if (result.start === 0 || tt_lt(r.start, result.start)) {
+                result.start = r.start;
+              }
 
-                // always is > the first time, but subsequent pages will be less
-                if (tt_gt(r.end, result.end)) {
-                    result.end = r.end;
-                }
+              // always is > the first time, but subsequent pages will be less
+              if (tt_gt(r.end, result.end)) {
+                result.end = r.end;
+              }
 
-                // continue paging if returns whole page
-                if (r.count === 100) {
-                    params.start = r.end;
-                    uptoNextPage();
-                }
-                else {
-                    completed(result);
-                }
-            });
+              // continue paging if returns whole page
+              if (r.count === 100) {
+                params.start = r.end;
+                uptoNextPage();
+              }
+              else {
+                completed(result);
+              }
+
+            }
+          });
         }
 
         uptoNextPage();
@@ -375,45 +395,49 @@ var pubnub_flex_history = function (args1, completed) {
         params.reverse = true;
 
         getPage(params, function (r) {
+          if('error' in r) {
+            errorFn(r);
+          } else {
 
             result.messages.first = r.messages[0];
 
             // each page will be an earlier start timetoken
             if (result.start === 0 || tt_lt(r.start, result.start)) {
-                result.start = r.start;
+              result.start = r.start;
 
-                // Save a Epoch and Date/Time String as well
-                var utcs = (r.start / 10000000) | 0;
-                var s = new Date(0);
-                s.setUTCSeconds(utcs);
-                result.startE = utcs;
-                result.startD = s.toString();
+              // Save a Epoch and Date/Time String as well
+              var utcs = (r.start / 10000000) | 0;
+              var s = new Date(0);
+              s.setUTCSeconds(utcs);
+              result.startE = utcs;
+              result.startD = s.toString();
 
-                {
-                    var remaining = 0;
-                    var total_seconds = result.endE - result.startE;
-                    var days = Math.floor(total_seconds / (60*60*24));
-                    remaining = total_seconds - (days*24*60*60);
-                    var hours = Math.floor(remaining / (60*60));
-                    remaining = remaining - (hours*60*60);
-                    var minutes = Math.floor(remaining / 60);
-                    remaining = remaining - (minutes*60);
-                    var seconds = remaining;
+              {
+                var remaining = 0;
+                var total_seconds = result.endE - result.startE;
+                var days = Math.floor(total_seconds / (60*60*24));
+                remaining = total_seconds - (days*24*60*60);
+                var hours = Math.floor(remaining / (60*60));
+                remaining = remaining - (hours*60*60);
+                var minutes = Math.floor(remaining / 60);
+                remaining = remaining - (minutes*60);
+                var seconds = remaining;
 
-                    result.duration = {
-                        total_seconds: total_seconds,
-                        days: days,
-                        hours: hours,
-                        minutes: minutes,
-                        seconds: seconds
-                    };
-                }
+                result.duration = {
+                  total_seconds: total_seconds,
+                  days: days,
+                  hours: hours,
+                  minutes: minutes,
+                  seconds: seconds
+                };
+              }
             }
 
             if (result.start > 0 && result.end > 0) {
-                delete result.count;
-                completed(result);
+              delete result.count;
+              completed(result);
             }
+          }
         });
 
     }
@@ -438,29 +462,33 @@ var pubnub_flex_history = function (args1, completed) {
 
         function betweenNextPage() {
 
-            getPage(params, function (r) {
+          getPage(params, function (r) {
+            if('error' in r) {
+              errorFn(r);
+            } else {
 
-                result.count += r.count;
-                Array.prototype.push.apply(result.messages, r.messages);
+              result.count += r.count;
+              Array.prototype.push.apply(result.messages, r.messages);
 
-                // each page will be an earlier start timetoken
-                if (result.start === 0 || tt_lt(r.start, result.start)) {
-                    result.start = r.start;
-                }
+              // each page will be an earlier start timetoken
+              if (result.start === 0 || tt_lt(r.start, result.start)) {
+                result.start = r.start;
+              }
 
-                if (tt_gt(r.end, result.end)) {
-                    result.end = r.end;
-                }
+              if (tt_gt(r.end, result.end)) {
+                result.end = r.end;
+              }
 
-                // continue paging if returns whole page
-                if (r.count === 100) {
-                    params.start = r.end;
-                    betweenNextPage();
-                }
-                else {
-                    completed(result);
-                }
-            });
+              // continue paging if returns whole page
+              if (r.count === 100) {
+                params.start = r.end;
+                betweenNextPage();
+              }
+              else {
+                completed(result);
+              }
+            }
+          });
         }
 
         betweenNextPage();
@@ -475,19 +503,23 @@ var pubnub_flex_history = function (args1, completed) {
         params.count = 1;
 
         getPage(params, function (r) {
+          if('error' in r) {
+            errorFn(r);
+          } else {
 
             result.count += r.count;
             Array.prototype.push.apply(result.messages, r.messages);
 
             if (r.count > 0 && (result.start === 0 || tt_lt(r.start, result.start))) {
-                result.start = r.start;
+              result.start = r.start;
             }
 
             if (r.count > 0 && tt_gt(r.end, result.end)) {
-                result.end = r.end;
+              result.end = r.end;
             }
 
             completed(result);
+          }
         });
     }
     // Get All available History on Channel 
@@ -502,29 +534,33 @@ var pubnub_flex_history = function (args1, completed) {
 
         function sinceNextPage() {
 
-            getPage(params, function (r) {
+          getPage(params, function (r) {
+            if('error' in r) {
+              errorFn(r);
+            } else {
 
-                result.count += r.count;
-                Array.prototype.push.apply(result.messages, r.messages);
+              result.count += r.count;
+              Array.prototype.push.apply(result.messages, r.messages);
 
-                // each page will be an earlier start timetoken
-                if (result.start === 0 || tt_lt(r.start, result.start)) {
-                    result.start = r.start;
-                }
+              // each page will be an earlier start timetoken
+              if (result.start === 0 || tt_lt(r.start, result.start)) {
+                result.start = r.start;
+              }
 
-                if (tt_gt(r.end, result.end)) {
-                    result.end = r.end;
-                }
+              if (tt_gt(r.end, result.end)) {
+                result.end = r.end;
+              }
 
-                // continue paging if returns whole page
-                if (r.count === 100) {
-                    params.start = r.end;
-                    sinceNextPage();
-                }
-                else {
-                    completed(result);
-                }
-            });
+              // continue paging if returns whole page
+              if (r.count === 100) {
+                params.start = r.end;
+                sinceNextPage();
+              }
+              else {
+                completed(result);
+              }
+            }
+          });
         }
 
         sinceNextPage();
@@ -534,6 +570,8 @@ var pubnub_flex_history = function (args1, completed) {
         result.error = true;
         result.errorMessage = "operation required, one of [last, since, getrange, upto, between, at, getall]";
         result.errorArgs = args1;
-        completed(result);
+        errorFn(result);
     }
 };
+
+module.exports = pubnub_flex_history;

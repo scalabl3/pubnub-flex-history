@@ -1,0 +1,19 @@
+{
+  "name": "pubnub-flex-history",
+  "version": "1.0.0",
+  "description": "A Javascript History wrapper for flexible history calls, automatically handling any paging.",
+  "main": "pubnub-flex-history.js",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/scalabl3/pubnub-flex-history.git"
+  },
+  "author": "Jasdeep Jaitla",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/scalabl3/pubnub-flex-history/issues"
+  },
+  "homepage": "https://github.com/scalabl3/pubnub-flex-history#readme",
+  "dependencies": {
+      "pubnub": "^3.7.14"
+  }
+}
